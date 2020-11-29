@@ -225,7 +225,7 @@ const uint16_t ddsBuf[DDS_BUF_LEN]=
 
 
   		adcOVS /= ADC_BUFFER_LEN;
-  		HAL_DAC_SetValue(&hdac, DAC_CHANNEL_1, DAC_ALIGN_12B_R, adcOVS);
+  		//HAL_DAC_SetValue(&hdac, DAC_CHANNEL_1, DAC_ALIGN_12B_R, adcOVS);
 
 
 	  HAL_GPIO_TogglePin(DMA_GPIO_Port, DMA_Pin);
@@ -238,7 +238,9 @@ const uint16_t ddsBuf[DDS_BUF_LEN]=
 #define FS 100e3
 #define ddsFreq 1e3
 
+  uint16_t sample=0;
 
+ // float ddsPhaseAccu=0;
 
   void tim2Interrupt(void){
 
@@ -254,7 +256,8 @@ const uint16_t ddsBuf[DDS_BUF_LEN]=
 	  if(ddsPhaseAccu>=DDS_BUF_LEN){
 		  ddsPhaseAccu-=DDS_BUF_LEN;
 	  }
-	  uint16_t sample=ddsPhaseAccu;
+	  sample=(uint16_t)ddsPhaseAccu;
+
 	    	HAL_DAC_SetValue(&hdac, DAC_CHANNEL_1, DAC_ALIGN_12B_R, ddsBuf[sample]);
 
   }
@@ -363,7 +366,7 @@ void SystemClock_Config(void)
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;
-  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV8;
 
   if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_5) != HAL_OK)
   {
