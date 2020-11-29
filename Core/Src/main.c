@@ -48,6 +48,7 @@ DAC_HandleTypeDef hdac;
 
 SPI_HandleTypeDef hspi1;
 
+TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim3;
 
 /* USER CODE BEGIN PV */
@@ -62,6 +63,7 @@ static void MX_SPI1_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_TIM3_Init(void);
 static void MX_DAC_Init(void);
+static void MX_TIM2_Init(void);
 /* USER CODE BEGIN PFP */
 
 #define DDS_BUF_LEN 1024
@@ -213,28 +215,54 @@ const uint16_t ddsBuf[DDS_BUF_LEN]=
 //  	for (int i=0; i<ADC_BUFFER_LEN;i++){
 
  // 	}
-  	HAL_GPIO_TogglePin(DMA_GPIO_Port, DMA_Pin);
 
-/*
+
+
   		for(int i=0; i<ADC_BUFFER_LEN; i++){
-  			adcOVS += adcBuffer[1];
+  			adcOVS += adcBuffer[i];
   		}
 
 
 
   		adcOVS /= ADC_BUFFER_LEN;
   		HAL_DAC_SetValue(&hdac, DAC_CHANNEL_1, DAC_ALIGN_12B_R, adcOVS);
-*/
 
-  	static uint16_t sample;
-  	if(sample>=DDS_BUF_LEN)sample=0;
-  	HAL_DAC_SetValue(&hdac, DAC_CHANNEL_1, DAC_ALIGN_12B_R, ddsBuf[sample]);
-  	sample++;
+
+	  HAL_GPIO_TogglePin(DMA_GPIO_Port, DMA_Pin);
 
 
   	//ddsBuf[DDS_BUF_LEN]
   //HAL_DAC_SetValue(&hdac, DAC_CHANNEL_1, DAC_ALIGN_12B_L, adcOvs);
   }
+
+#define FS 100e3
+#define ddsFreq 1e3
+
+
+
+  void tim2Interrupt(void){
+
+
+
+	  //static uint16_t sample=0;
+	  static float ddsPhaseAccu=0;
+
+	  float ddsStep=ddsFreq*(DDS_BUF_LEN/FS);
+
+	  ddsPhaseAccu+=ddsStep;
+
+	  if(ddsPhaseAccu>=DDS_BUF_LEN){
+		  ddsPhaseAccu-=DDS_BUF_LEN;
+	  }
+	  uint16_t sample=ddsPhaseAccu;
+	    	HAL_DAC_SetValue(&hdac, DAC_CHANNEL_1, DAC_ALIGN_12B_R, ddsBuf[sample]);
+
+  }
+
+
+
+
+
 /* USER CODE END 0 */
 
 /**
@@ -270,6 +298,7 @@ int main(void)
   MX_ADC1_Init();
   MX_TIM3_Init();
   MX_DAC_Init();
+  MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
 
 
@@ -282,6 +311,9 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   HAL_TIM_Base_Start(&htim3);
+  HAL_NVIC_EnableIRQ(TIM2_IRQn);
+  HAL_TIM_Base_Start_IT(&htim2);
+
   HAL_ADC_Start_DMA(&hadc1,(uint32_t*)adcBuffer,ADC_BUFFER_LEN);
   HAL_DAC_Start(&hdac,DAC_CHANNEL_1);
 
@@ -462,6 +494,51 @@ static void MX_SPI1_Init(void)
   /* USER CODE BEGIN SPI1_Init 2 */
 
   /* USER CODE END SPI1_Init 2 */
+
+}
+
+/**
+  * @brief TIM2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM2_Init(void)
+{
+
+  /* USER CODE BEGIN TIM2_Init 0 */
+
+  /* USER CODE END TIM2_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM2_Init 1 */
+
+  /* USER CODE END TIM2_Init 1 */
+  htim2.Instance = TIM2;
+  htim2.Init.Prescaler = 0;
+  htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim2.Init.Period = 839;
+  htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
+  if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim2, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_UPDATE;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM2_Init 2 */
+
+  /* USER CODE END TIM2_Init 2 */
 
 }
 
