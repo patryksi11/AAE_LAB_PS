@@ -212,31 +212,18 @@ const uint16_t ddsBuf[DDS_BUF_LEN]=
   void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc){
 
 
-//  	for (int i=0; i<ADC_BUFFER_LEN;i++){
-
- // 	}
-
-
-
   		for(int i=0; i<ADC_BUFFER_LEN; i++){
   			adcOVS += adcBuffer[i];
   		}
 
-
-
   		adcOVS /= ADC_BUFFER_LEN;
-  		//HAL_DAC_SetValue(&hdac, DAC_CHANNEL_1, DAC_ALIGN_12B_R, adcOVS);
 
+	 // HAL_GPIO_TogglePin(DMA_GPIO_Port, DMA_Pin);
 
-	  HAL_GPIO_TogglePin(DMA_GPIO_Port, DMA_Pin);
-
-
-  	//ddsBuf[DDS_BUF_LEN]
-  //HAL_DAC_SetValue(&hdac, DAC_CHANNEL_1, DAC_ALIGN_12B_L, adcOvs);
   }
 
 #define FS 100e3
-#define ddsFreq 1e3
+#define ddsFreq 1.0e3
 
   uint16_t sample=0;
 
@@ -245,8 +232,6 @@ const uint16_t ddsBuf[DDS_BUF_LEN]=
   void tim2Interrupt(void){
 
 
-
-	  //static uint16_t sample=0;
 	  static float ddsPhaseAccu=0;
 
 	  float ddsStep=ddsFreq*(DDS_BUF_LEN/FS);
@@ -313,8 +298,8 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  HAL_TIM_Base_Start(&htim3);
-  HAL_NVIC_EnableIRQ(TIM2_IRQn);
+ //HAL_TIM_Base_Start(&htim3);
+ // HAL_NVIC_EnableIRQ(TIM2_IRQn);
   HAL_TIM_Base_Start_IT(&htim2);
 
   HAL_ADC_Start_DMA(&hadc1,(uint32_t*)adcBuffer,ADC_BUFFER_LEN);
