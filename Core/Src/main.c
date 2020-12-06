@@ -232,8 +232,8 @@ const uint16_t ddsBuf[DDS_BUF_LEN]=
 
   void tim2Interrupt(void){
 
-	  const uint8_t AMon=0;
-	  const uint8_t FMon=1;
+	  const uint8_t AMon=1;
+	  const uint8_t FMon=0;
 
 	  static float ddsPhaseAccu=0;
 
@@ -266,9 +266,6 @@ const uint16_t ddsBuf[DDS_BUF_LEN]=
 
 		  factor=(factor-2048.0f)/2048.0f; // data range -1 - 1
 		  ddsStep=(ddsFreq+factor*1000.f)*(DDS_BUF_LEN/FS);
-
-
-
 		  ddsPhaseAccu+=ddsStep;
 		  if(ddsPhaseAccu>=DDS_BUF_LEN){
 			  ddsPhaseAccu-=DDS_BUF_LEN;
