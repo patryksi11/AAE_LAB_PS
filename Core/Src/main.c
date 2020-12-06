@@ -232,30 +232,63 @@ const uint16_t ddsBuf[DDS_BUF_LEN]=
 
   void tim2Interrupt(void){
 
+	  const uint8_t AMon=0;
+	  const uint8_t FMon=1;
 
 	  static float ddsPhaseAccu=0;
 
-	  float factor= adcOVS;
-	  factor=(factor-2048.0f)/2048.0f;
+	  float factor= adcOVS; // ADC input
+	  float ddsStep=0.0f;
+	  if (AMon){
 
-	   FMphaseShift=1000.0f*(factor);
 
+		  factor=factor/4095.0f;   // modulation signal standarization
+		  ddsStep=(ddsFreq)*(DDS_BUF_LEN/FS); // dds step
+		  ddsPhaseAccu+=ddsStep;
 
-	  float ddsStep=(ddsFreq+FMphaseShift)*(DDS_BUF_LEN/FS);
-	  //ddsStep+=FMphaseShift;
-	  ddsPhaseAccu+=ddsStep;
+		  if(ddsPhaseAccu>=DDS_BUF_LEN){
+			  ddsPhaseAccu-=DDS_BUF_LEN;
+		  }
 
-	  if(ddsPhaseAccu>=DDS_BUF_LEN){
-		  ddsPhaseAccu-=DDS_BUF_LEN;
+		  sample=(uint16_t)ddsPhaseAccu;
+		  float tmpSample=ddsBuf[sample];
+
+		  	  	  tmpSample=((tmpSample-2048.0f)*factor)+2048.0f; // apply amplitude
+		  	  	  uint16_t val=tmpSample;
+
+		    	HAL_DAC_SetValue(&hdac, DAC_CHANNEL_1, DAC_ALIGN_12B_R, val); // set value on DAC
 	  }
 
-	  sample=(uint16_t)ddsPhaseAccu;
-	  //float tmpSample=ddsBuf[sample];
 
-	  	//  	  tmpSample=((tmpSample-2048.0f)*factor)+2048.0f;
-	  	  	 // uint16_t val=tmpSample;
 
-	    	HAL_DAC_SetValue(&hdac, DAC_CHANNEL_1, DAC_ALIGN_12B_R, ddsBuf[sample]);
+	  if (FMon){
+
+
+		  factor=(factor-2048.0f)/2048.0f; // data range -1 - 1
+		  ddsStep=(ddsFreq+factor*1000.f)*(DDS_BUF_LEN/FS);
+
+
+
+		  ddsPhaseAccu+=ddsStep;
+		  if(ddsPhaseAccu>=DDS_BUF_LEN){
+			  ddsPhaseAccu-=DDS_BUF_LEN;
+		  }
+
+		  sample=(uint16_t)ddsPhaseAccu;
+
+		    	HAL_DAC_SetValue(&hdac, DAC_CHANNEL_1, DAC_ALIGN_12B_R,ddsBuf[sample]);
+	  }
+
+
+	   //FMphaseShift=1000.0f*(factor);
+
+
+	  //float ddsStep=(ddsFreq+FMphaseShift)*(DDS_BUF_LEN/FS);
+
+	  //ddsStep+=FMphaseShift;
+
+
+
 
   }
 
