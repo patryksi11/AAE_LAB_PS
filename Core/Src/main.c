@@ -209,6 +209,49 @@ const uint16_t ddsBuf[DDS_BUF_LEN]=
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+#define FILTER_N 4
+
+#define REG_SIZE FILTER_N+1
+
+  float DenomCoeff[REG_SIZE]={1.00000,  -3.70519,   5.18030,  -3.24090,   0.76601};
+  float NomCoeff[REG_SIZE]={ 0.007820,   0.000000,  -0.015640,   0.000000,   0.007820};
+
+  //float DenomCoeff[REG_SIZE]={1.00000,  -2.74884,   2.52823,  -0.77764};
+  //float NomCoeff[REG_SIZE]={0.00021961,   0.00065882,   0.00065882,   0.00021961};
+  float RegX[REG_SIZE], RegY[REG_SIZE],CenterTap;
+
+  float runIIR( float Signal){
+
+
+
+	  int k;
+
+	  for(k = FILTER_N;k>0;k--)RegX[k]=RegX[k-1];
+	  for(k = FILTER_N;k>0;k--)RegY[k]=RegY[k-1];
+
+
+	  RegX[0]=Signal;
+
+	  CenterTap=NomCoeff[0]*RegX[0];
+
+	  for(k=1;k<=FILTER_N;k++){
+
+		  CenterTap+=NomCoeff[k]*RegX[k]-DenomCoeff[k]*RegY[k];
+
+
+	  }
+
+	  RegY[0]=CenterTap;
+	  return RegY[0];
+
+	  //return Signal;
+
+
+
+  }
+
+
+
   void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc){
 
 	  //HAL_GPIO_TogglePin(DMA_GPIO_Port, DMA_Pin);
@@ -219,9 +262,25 @@ const uint16_t ddsBuf[DDS_BUF_LEN]=
 
   		adcOVS /= ADC_BUFFER_LEN;
 
+  		float val = adcOVS;
+  		val=val-2048.0f;
+
+  		float input =runIIR( val);
+  		input+=2048.0f;
+  		uint16_t toDAC= input;
+
+  		HAL_DAC_SetValue(&hdac, DAC_CHANNEL_1, DAC_ALIGN_12B_R,toDAC);
+
 	  HAL_GPIO_TogglePin(DMA_GPIO_Port, DMA_Pin);
 
   }
+
+
+
+
+
+
+
 
 #define FS 100e3
 #define ddsFreq 5.0e3
@@ -232,7 +291,7 @@ const uint16_t ddsBuf[DDS_BUF_LEN]=
 
   void tim2Interrupt(void){
 
-	  const uint8_t AMon=1;
+	  const uint8_t AMon=0;
 	  const uint8_t FMon=0;
 
 	  static float ddsPhaseAccu=0;
@@ -393,7 +452,7 @@ void SystemClock_Config(void)
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;
-  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV8;
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV4;
 
   if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_5) != HAL_OK)
   {
@@ -421,7 +480,7 @@ static void MX_ADC1_Init(void)
   /** Configure the global features of the ADC (Clock, Resolution, Data Alignment and number of conversion)
   */
   hadc1.Instance = ADC1;
-  hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV4;
+  hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV2;
   hadc1.Init.Resolution = ADC_RESOLUTION_12B;
   hadc1.Init.ScanConvMode = DISABLE;
   hadc1.Init.ContinuousConvMode = DISABLE;
